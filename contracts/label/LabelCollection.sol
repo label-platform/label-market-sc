@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Unlicensed
 pragma solidity 0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
@@ -56,9 +56,10 @@ contract LabelCollection is
     struct CreatorsInfo {
         address[] creators;
         uint256[] royalties;
+        uint256 totalRoyalty;
     }
 
-    address proxyRegistryAddress;
+    address public proxyRegistryAddress;
     string public name;
     string public symbol;
     mapping(uint256 => CreatorsInfo) private _tokenCredit;
@@ -112,11 +113,15 @@ contract LabelCollection is
     function getCreditsInfo(uint256 tokenId)
         public
         view
-        returns (address[] memory, uint256[] memory)
+        returns (
+            address[] memory,
+            uint256[] memory,
+            uint256
+        )
     {
         CreatorsInfo memory credit = _tokenCredit[tokenId];
 
-        return (credit.creators, credit.royalties);
+        return (credit.creators, credit.royalties, credit.totalRoyalty);
     }
 
     function getTokenCreatorById(uint256 tokenId)
@@ -147,6 +152,7 @@ contract LabelCollection is
         string memory uriStore,
         address[] memory creators,
         uint256[] memory royalties,
+        uint256 totalRoyalty,
         bytes memory data
     ) public whenNotPaused onlyMinter returns (uint256) {
         require(!exists(id), "Token existed");
@@ -156,10 +162,7 @@ contract LabelCollection is
             "Invalid ID and creator"
         );
 
-        require(
-            accounts.length > 0 && accounts.length == amounts.length,
-            "Invalid accounts"
-        );
+        require(accounts.length == amounts.length, "Invalid accounts");
 
         require(
             creators.length > 0 && creators.length == royalties.length,
@@ -168,7 +171,17 @@ contract LabelCollection is
 
         CreatorsInfo storage info = _tokenCredit[id];
         info.creators = creators;
+        // check
+        uint256 royaltySum = 0;
+
+        for (uint256 i = 0; i < royalties.length; i++) {
+            royaltySum += royalties[i];
+        }
+
+        require(royaltySum == 10000, "Invalid royalties");
+
         info.royalties = royalties;
+        info.totalRoyalty = totalRoyalty;
         uriStorage[id] = uriStore;
 
         //mint all to creator first
@@ -188,6 +201,23 @@ contract LabelCollection is
         }
 
         return id;
+    }
+
+    function safeMultiTransferFrom(
+        address from,
+        address[] memory tos,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    ) public {
+        require(
+            from == _msgSender() || isApprovedForAll(from, _msgSender()),
+            "ERC1155: caller is not owner nor approved"
+        );
+
+        for (uint256 i = 0; i < ids.length; i++) {
+            _safeTransferFrom(from, tos[i], ids[i], amounts[i], data);
+        }
     }
 
     function tokenUri(uint256 id) public view returns (string memory) {

@@ -10,7 +10,8 @@ const {
     CHAIN_ID,
     assertIsRejected,
     getPredicateId,
-} = require("./common/util");
+    ZERO_ADDRESS,
+} = require("../common/util");
 
 describe("Exchange", function () {
     beforeEach(async () => {
@@ -41,7 +42,10 @@ describe("Exchange", function () {
 
         PaymentManager = await ethers.getContractFactory("PaymentManager");
 
-        StaticMarket = await ethers.getContractFactory("StaticMarket");
+        StaticMarket = await ethers.getContractFactory("LabelStaticMarket");
+
+        statici = await StaticMarket.deploy();
+        await statici.deployed();
 
         //settings
         await registry.grantInitialAuthentication(exchange.address);
@@ -65,9 +69,11 @@ describe("Exchange", function () {
             transactions,
             creators,
             royalties,
+            totalRoyalties,
             platformFeeRecipient,
             platformFee,
             moneyReceiver,
+            encodedReceiver,
         } = options;
 
         id = getPredicateId(creators[0], tokenId, erc1155MintAmount);
@@ -81,16 +87,15 @@ describe("Exchange", function () {
 
         const mr = moneyReceiver || account_a;
 
-        let payment = await PaymentManager.deploy(
-            erc1155.address,
-            platformFeeRecipient,
-            platformFee
+        let payment = await upgrades.deployProxy(
+            PaymentManager,
+            [erc1155.address, platformFeeRecipient, platformFee],
+            {
+                kind: "uups",
+            }
         );
 
         await payment.deployed();
-
-        let statici = await StaticMarket.deploy(payment.address);
-        await statici.deployed();
 
         await registry.connect(account_a).registerProxy();
         let proxy1 = await registry
@@ -118,6 +123,7 @@ describe("Exchange", function () {
                 "/test",
                 creators,
                 royalties,
+                totalRoyalties,
                 "0x"
             ),
             erc20.mint(account_b.address, erc20MintAmount),
@@ -132,6 +138,7 @@ describe("Exchange", function () {
                 "/test",
                 creators,
                 royalties,
+                totalRoyalties,
                 "0x"
             );
 
@@ -208,7 +215,7 @@ describe("Exchange", function () {
         const secondData = paymentc.methods
             .payForNFT(
                 account_b.address,
-                mr,
+                encodedReceiver ? encodedReceiver : mr,
                 buyAmount * buyingPrice,
                 erc20.address,
                 id
@@ -253,28 +260,27 @@ describe("Exchange", function () {
         ]);
 
         const totalPay = sellingPrice * buyAmount * txCount;
-        const totalFee =
-            (totalPay * (royalties.reduce((a, b) => a + b) + platformFee)) /
-            10000;
+        const royaltyFeeAmount = (totalPay * totalRoyalties) / 10000;
+        const platformFeeAmount = (totalPay * platformFee) / 10000;
 
         for (let i = 0; i < creators.length; i++) {
             feeAmount = await erc20.balanceOf(creators[i]);
             assert.equal(
                 feeAmount.toNumber(),
-                (totalPay * royalties[i]) / 10000,
-                "Incorrect ERC20 balance"
+                (royaltyFeeAmount * royalties[i]) / 10000,
+                "Incorrect creator's ERC20 balance"
             );
         }
 
         assert.equal(
             mrBalance.toNumber(),
-            totalPay - totalFee,
-            "Incorrect ERC20 balance"
+            totalPay - royaltyFeeAmount - platformFeeAmount,
+            "Incorrect money receiver's ERC20 balance"
         );
 
         assert.equal(
             platformFeeRecipientBalance.toNumber(),
-            (totalPay * platformFee) / 10000,
+            platformFeeAmount,
             "Incorrect ERC20 balance"
         );
 
@@ -300,7 +306,8 @@ describe("Exchange", function () {
             account_b: accounts[6],
             sender: accounts[6],
             creators: [accounts[2].address, accounts[3].address],
-            royalties: [300, 200],
+            royalties: [6000, 4000],
+            totalRoyalties: 500,
             platformFeeRecipient: accounts[5].address,
             platformFee: 150,
             moneyReceiver: accounts[1].address,
@@ -321,7 +328,8 @@ describe("Exchange", function () {
             account_b: accounts[6],
             sender: accounts[6],
             creators: [accounts[2].address, accounts[3].address],
-            royalties: [300, 200],
+            royalties: [6000, 4000],
+            totalRoyalties: 500,
             platformFeeRecipient: accounts[5].address,
             platformFee: 150,
             moneyReceiver: accounts[4].address,
@@ -344,7 +352,8 @@ describe("Exchange", function () {
             account_b: accounts[6],
             sender: accounts[6],
             creators: [accounts[2].address, accounts[3].address],
-            royalties: [300, 200],
+            royalties: [6000, 4000],
+            totalRoyalties: 500,
             platformFeeRecipient: accounts[5].address,
             platformFee: 150,
             moneyReceiver: accounts[4].address,
@@ -369,7 +378,8 @@ describe("Exchange", function () {
             account_b: accounts[6],
             sender: accounts[6],
             creators: [accounts[2].address, accounts[3].address],
-            royalties: [300, 200],
+            royalties: [6000, 4000],
+            totalRoyalties: 500,
             platformFeeRecipient: accounts[5].address,
             platformFee: 150,
             moneyReceiver: accounts[4].address,
@@ -393,7 +403,8 @@ describe("Exchange", function () {
             account_b: accounts[6],
             sender: accounts[6],
             creators: [accounts[2].address, accounts[3].address],
-            royalties: [300, 200],
+            royalties: [6000, 4000],
+            totalRoyalties: 500,
             platformFeeRecipient: accounts[5].address,
             platformFee: 150,
             moneyReceiver: accounts[4].address,
@@ -418,7 +429,8 @@ describe("Exchange", function () {
             account_b: accounts[6],
             sender: accounts[6],
             creators: [accounts[2].address, accounts[3].address],
-            royalties: [300, 200],
+            royalties: [6000, 4000],
+            totalRoyalties: 500,
             platformFeeRecipient: accounts[5].address,
             platformFee: 150,
             moneyReceiver: accounts[4].address,
@@ -442,7 +454,8 @@ describe("Exchange", function () {
                 account_b: accounts[6],
                 sender: accounts[6],
                 creators: [accounts[2].address, accounts[3].address],
-                royalties: [300, 200],
+                royalties: [6000, 4000],
+                totalRoyalties: 500,
                 platformFeeRecipient: accounts[5].address,
                 platformFee: 150,
                 moneyReceiver: accounts[4].address,
@@ -468,7 +481,8 @@ describe("Exchange", function () {
                 account_b: accounts[6],
                 sender: accounts[6],
                 creators: [accounts[2].address, accounts[3].address],
-                royalties: [300, 200],
+                royalties: [6000, 4000],
+                totalRoyalties: 500,
                 platformFeeRecipient: accounts[5].address,
                 platformFee: 150,
                 moneyReceiver: accounts[4].address,
@@ -495,7 +509,8 @@ describe("Exchange", function () {
                 account_b: accounts[6],
                 sender: accounts[6],
                 creators: [accounts[2].address, accounts[3].address],
-                royalties: [300, 200],
+                royalties: [6000, 4000],
+                totalRoyalties: 500,
                 platformFeeRecipient: accounts[5].address,
                 platformFee: 150,
                 moneyReceiver: accounts[4].address,
@@ -523,7 +538,8 @@ describe("Exchange", function () {
                 account_b: accounts[6],
                 sender: accounts[6],
                 creators: [accounts[2].address, accounts[3].address],
-                royalties: [300, 200],
+                royalties: [6000, 4000],
+                totalRoyalties: 500,
                 platformFeeRecipient: accounts[5].address,
                 platformFee: 150,
                 moneyReceiver: accounts[4].address,
@@ -551,7 +567,8 @@ describe("Exchange", function () {
                 account_b: accounts[6],
                 sender: accounts[6],
                 creators: [accounts[2].address, accounts[3].address],
-                royalties: [300, 200],
+                royalties: [6000, 4000],
+                totalRoyalties: 500,
                 platformFeeRecipient: accounts[5].address,
                 platformFee: 150,
                 moneyReceiver: accounts[4].address,
@@ -578,13 +595,41 @@ describe("Exchange", function () {
                 account_b: accounts[6],
                 sender: accounts[6],
                 creators: [accounts[2].address, accounts[3].address],
-                royalties: [300, 200],
+                royalties: [6000, 4000],
+                totalRoyalties: 500,
                 platformFeeRecipient: accounts[5].address,
                 platformFee: 150,
                 moneyReceiver: accounts[4].address,
             }),
             /Static call failed/,
             "Order should not match the second time."
+        );
+    });
+
+    it("StaticMarket: does not match erc1155 <> erc20 order, wrongly encoded", async () => {
+        const price = 10000;
+
+        return assertIsRejected(
+            test({
+                tokenId: 5,
+                sellAmount: 1,
+                sellingPrice: price,
+                buyingPrice: price,
+                buyAmount: 1,
+                erc1155MintAmount: 1,
+                erc20MintAmount: price,
+                account_a: accounts[1],
+                account_b: accounts[6],
+                sender: accounts[6],
+                creators: [accounts[2].address, accounts[3].address],
+                royalties: [6000, 4000],
+                totalRoyalties: 500,
+                platformFeeRecipient: accounts[5].address,
+                platformFee: 150,
+                moneyReceiver: accounts[1].address,
+                encodedReceiver: accounts[3].address,
+            }),
+            /Static call failed/
         );
     });
 });
