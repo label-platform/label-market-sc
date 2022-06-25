@@ -1,13 +1,19 @@
 // SPDX-License-Identifier: Unlicensed
-pragma solidity 0.8.9;
+pragma solidity ^0.8.9;
 
-contract MatchingMachine {
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract MatchingMachine is Ownable {
     address public labelWyvernAddress;
 
     event MultiMatched(uint256 indexed id, bool[] results);
 
     constructor(address _wyvernAddress) {
         labelWyvernAddress = _wyvernAddress;
+    }
+
+    function setExchange(address _exchangeAddress) external onlyOwner {
+        labelWyvernAddress = _exchangeAddress;
     }
 
     function multiMatch(uint256 id, bytes[] calldata data) external {

@@ -1,11 +1,22 @@
 // SPDX-License-Identifier: Ulicensed
-pragma solidity 0.8.9;
+pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+
+interface IWBNB {
+    function withdraw(uint256 wad) external;
+
+    function transferFrom(
+        address src,
+        address dst,
+        uint256 wad
+    ) external returns (bool);
+}
 
 interface ILabelCollection {
     function getCreditsInfo(uint256 tokenId)
@@ -24,41 +35,59 @@ contract PaymentManager is
     PausableUpgradeable,
     UUPSUpgradeable
 {
-    ILabelCollection public labelCollection;
+    using AddressUpgradeable for address payable;
+
     address public platformFeeRecipient;
     uint256 public platformFee;
     uint256 public feeDenominator;
 
+    mapping(address => bool) public labelCollections;
+
+    address public wNative; // bsc testnet
+
     event PlatformFeeRecipientChanged(address feeRecipient);
     event PlatformFeeChanged(uint256 fee);
     event LabelCollectionChanged(address labelCollection);
-    event PayToSeller(
+
+    event PaymentTransferred(
         address from,
-        address paymentToken,
+        address to,
         uint256 amount,
-        uint256 tokenId
+        address paymentToken,
+        address nftCollection,
+        uint256 tokenId,
+        string systemOrderId
     );
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() initializer {}
 
     function initialize(
-        address _labelCollection,
+        address[] memory _labelCollections,
         address _platformFeeRecipient,
         uint256 _platformFee
     ) public initializer {
         __Ownable_init();
         __Pausable_init();
         __UUPSUpgradeable_init();
-        _setLabelCollection(_labelCollection);
+        for (uint256 i = 0; i < _labelCollections.length; i++) {
+            _setLabelCollection(_labelCollections[i], true);
+        }
+
         _setPlatformFeeRecipient(_platformFeeRecipient);
         _setPlatformFee(_platformFee);
         feeDenominator = 10000;
+        wNative = 0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd;
     }
 
-    function _setLabelCollection(address _labelCollection) internal {
+    receive() external payable {}
+
+    function _setLabelCollection(
+        address _labelCollection,
+        bool _isLabelCollection
+    ) internal {
         require(_labelCollection != address(0), "invalid address");
-        labelCollection = ILabelCollection(_labelCollection);
+        labelCollections[_labelCollection] = _isLabelCollection;
         emit LabelCollectionChanged(_labelCollection);
     }
 
@@ -73,6 +102,10 @@ contract PaymentManager is
         emit PlatformFeeChanged(_platformFee);
     }
 
+    function setWNative(address _wNative) external onlyOwner {
+        wNative = _wNative;
+    }
+
     function pause() public onlyOwner {
         _pause();
     }
@@ -81,8 +114,11 @@ contract PaymentManager is
         _unpause();
     }
 
-    function setLabelCollection(address _labelCollection) external onlyOwner {
-        _setLabelCollection(_labelCollection);
+    function setLabelCollection(
+        address _labelCollection,
+        bool _isLabelCollection
+    ) external onlyOwner {
+        _setLabelCollection(_labelCollection, _isLabelCollection);
     }
 
     function setPlatformFeeRecipient(address _platformFeeRecipient)
@@ -109,18 +145,58 @@ contract PaymentManager is
         address _to,
         uint256 _totalAmount,
         IERC20Upgradeable _paymentToken,
+        ILabelCollection _nftCollection,
+        uint256 _nftId,
+        string memory _systemOrderId
+    ) external payable whenNotPaused {
+        require(
+            labelCollections[address(_nftCollection)],
+            "unrecognized collection"
+        );
+
+        if (address(_paymentToken) == address(0)) {
+            _payWithNative(_from, _to, _totalAmount, _nftCollection, _nftId);
+        } else {
+            _payWithERC20(
+                _from,
+                _to,
+                _totalAmount,
+                _paymentToken,
+                _nftCollection,
+                _nftId
+            );
+        }
+
+        emit PaymentTransferred(
+            _from,
+            _to,
+            _totalAmount,
+            address(_paymentToken),
+            address(_nftCollection),
+            _nftId,
+            _systemOrderId
+        );
+    }
+
+    function _payWithERC20(
+        address _from,
+        address _to,
+        uint256 _totalAmount,
+        IERC20Upgradeable _paymentToken,
+        ILabelCollection _nftCollection,
         uint256 _nftId
-    ) external whenNotPaused {
+    ) internal {
         address[] memory feeRecipients;
         uint256[] memory feeRatios;
         uint256 totalRoyalties;
-        (feeRecipients, feeRatios, totalRoyalties) = labelCollection
+        (feeRecipients, feeRatios, totalRoyalties) = _nftCollection
             .getCreditsInfo(_nftId);
 
         uint256 payAmount = _totalAmount;
+        uint256 platformFeeAmount = getFeeAmount(_totalAmount, platformFee);
+        uint256 totalRoyaltyAmount = getFeeAmount(_totalAmount, totalRoyalties);
 
         // pay platform fees
-        uint256 platformFeeAmount = getFeeAmount(_totalAmount, platformFee);
         _paymentToken.transferFrom(
             _from,
             platformFeeRecipient,
@@ -129,16 +205,54 @@ contract PaymentManager is
         payAmount -= platformFeeAmount;
 
         // pay royalties
-        uint256 totalRoyaltyAmount = getFeeAmount(_totalAmount, totalRoyalties);
         for (uint256 i = 0; i < feeRatios.length; i++) {
             uint256 feeAmount = getFeeAmount(totalRoyaltyAmount, feeRatios[i]);
             _paymentToken.transferFrom(_from, feeRecipients[i], feeAmount);
             payAmount -= feeAmount;
         }
 
-        //transfer to seller
+        // transfer the rest to seller
         _paymentToken.transferFrom(_from, _to, payAmount);
-        emit PayToSeller(_from, address(_paymentToken), payAmount, _nftId);
+    }
+
+    function _payWithNative(
+        address _from,
+        address _to,
+        uint256 _totalAmount,
+        ILabelCollection _nftCollection,
+        uint256 _nftId
+    ) internal {
+        address[] memory feeRecipients;
+        uint256[] memory feeRatios;
+        uint256 totalRoyalties;
+        (feeRecipients, feeRatios, totalRoyalties) = _nftCollection
+            .getCreditsInfo(_nftId);
+
+        uint256 payAmount = _totalAmount;
+        uint256 platformFeeAmount = getFeeAmount(_totalAmount, platformFee);
+        uint256 totalRoyaltyAmount = getFeeAmount(_totalAmount, totalRoyalties);
+
+        IWBNB(payable(wNative)).transferFrom(
+            _from,
+            address(this),
+            _totalAmount
+        );
+
+        IWBNB(payable(wNative)).withdraw(_totalAmount);
+
+        // pay platform fee with native
+        payable(platformFeeRecipient).sendValue(platformFeeAmount);
+        payAmount -= platformFeeAmount;
+
+        // pay royalties with native
+        for (uint256 i = 0; i < feeRatios.length; i++) {
+            uint256 feeAmount = getFeeAmount(totalRoyaltyAmount, feeRatios[i]);
+            payable(feeRecipients[i]).sendValue(feeAmount);
+            payAmount -= feeAmount;
+        }
+
+        // transfer the rest to seller
+        payable(_to).sendValue(payAmount);
     }
 
     function multiTransfer(
