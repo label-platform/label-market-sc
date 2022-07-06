@@ -12,7 +12,7 @@ describe("Static market", function () {
         registry = await Registry.deploy();
         await registry.deployed();
 
-        ERC1155 = await ethers.getContractFactory("LabelCollection");
+        ERC1155 = await ethers.getContractFactory("LabelCollection1155");
         erc1155 = await upgrades.deployProxy(
             ERC1155,
             ["/test", registry.address],

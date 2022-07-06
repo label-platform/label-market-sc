@@ -27,7 +27,7 @@ describe("Payment Manager", function () {
         erc20 = await ERC20.deploy();
         await erc20.deployed();
 
-        ERC1155 = await ethers.getContractFactory("LabelCollection");
+        ERC1155 = await ethers.getContractFactory("LabelCollection1155");
         erc1155 = await upgrades.deployProxy(
             ERC1155,
             ["/test", registry.address],

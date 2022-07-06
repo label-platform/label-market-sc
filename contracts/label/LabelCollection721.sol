@@ -124,6 +124,10 @@ contract LabelCollection721 is
         return TokenIdentifiers.tokenMaxSupply(tokenId);
     }
 
+    function exists(uint256 id) public view returns (bool) {
+        return _exists(id);
+    }
+
     function setMinterRole(address[] memory minters, bool isAuthorized)
         external
         onlyOwner

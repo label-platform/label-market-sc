@@ -15,6 +15,7 @@ const {
     ZERO_BYTES32,
     CHAIN_ID,
     assertIsRejected,
+    getPredicateId,
 } = require("../common/util");
 
 contract("WyvernExchange", () => {
@@ -51,7 +52,7 @@ contract("WyvernExchange", () => {
         await registry.grantInitialAuthentication(exchange.address);
     });
     const erc721_for_erc20_test = async (options) => {
-        const {
+        let {
             tokenId,
             buyTokenId,
             sellingPrice,
@@ -66,6 +67,9 @@ contract("WyvernExchange", () => {
             platformFeeRecipient,
             platformFee,
         } = options;
+
+        tokenId = getPredicateId(creators[0], tokenId, 1);
+        bid = getPredicateId(creators[0], 99, 1);
 
         let payment = await upgrades.deployProxy(
             PaymentManager,
@@ -104,7 +108,7 @@ contract("WyvernExchange", () => {
         if (buyTokenId)
             await erc721.mint(
                 account_a.address,
-                buyTokenId,
+                bid,
                 "/abc",
                 creators,
                 royalties,
@@ -143,7 +147,7 @@ contract("WyvernExchange", () => {
             [
                 [erc20.address, erc721.address],
                 payment.address,
-                [buyTokenId || tokenId, buyingPrice],
+                [buyTokenId ? bid : tokenId, buyingPrice],
                 "1",
             ]
         );

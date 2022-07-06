@@ -18,6 +18,7 @@ const {
     ZERO_ADDRESS,
     WBNB_ABI,
     WBNB_ADDRESS,
+    getPredicateId,
 } = require("../common/util");
 
 contract("WyvernExchange", () => {
@@ -56,7 +57,7 @@ contract("WyvernExchange", () => {
         await registry.grantInitialAuthentication(exchange.address);
     });
     const erc721_for_erc20_test = async (options) => {
-        const {
+        let {
             tokenId,
             buyTokenId,
             sellingPrice,
@@ -71,6 +72,8 @@ contract("WyvernExchange", () => {
             platformFeeRecipient,
             platformFee,
         } = options;
+
+        tokenId = getPredicateId(creators[0], tokenId, 1);
 
         let payment = await upgrades.deployProxy(
             PaymentManager,

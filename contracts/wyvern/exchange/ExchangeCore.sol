@@ -493,19 +493,12 @@ contract ExchangeCore is ReentrancyGuarded, StaticCaller, EIP712 {
             );
             /* Reentrancy prevented by reentrancyGuard modifier */
             // (bool success,) = address(uint160(firstOrder.maker)).call{value: msg.value}("");
-            address wNative = 0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd; // bsc testnet
-            //
+
+            // address wNative = 0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd; // bsc testnet
+            address wNative = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c; //bsc mainnet
+
             (bool success, ) = wNative.call{value: msg.value}("");
             require(success, "convert native token failed.");
-
-            // (bool success1, ) = wNative.call(
-            //     abi.encodeWithSignature(
-            //         "transfer(address,uint)",
-            //         address(uint160(secondOrder.maker)),
-            //         msg.value
-            //     )
-            // );
-            // require(success1, "wrapped native token transfer failed.");
 
             IWBNB(payable(wNative)).transfer(secondOrder.maker, msg.value);
         }

@@ -22,7 +22,7 @@ describe("Collection", function () {
         );
         await pfp.deployed();
 
-        Headset = await ethers.getContractFactory("LabelHeadset");
+        Headset = await ethers.getContractFactory("LabelHeadphone");
         hs = await upgrades.deployProxy(
             Headset,
             ["abc/", 9999, [owner.address], [10000], 200],

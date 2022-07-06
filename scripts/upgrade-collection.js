@@ -1,9 +1,11 @@
 const { ethers, upgrades } = require("hardhat");
 
-const PROXY = "0xCe9344f841616f2E8B1320F45322eD8c34A91749";
+const PROXY = "0x74847e65818B46F1e84A6A9f5754b8E9C08bCde7";
 
 async function main() {
-    const LabelCollection = await ethers.getContractFactory("LabelCollection");
+    const LabelCollection = await ethers.getContractFactory(
+        "LabelCollection721"
+    );
     // await upgrades.forceImport(PROXY, LabelCollection, { kind: "uups" });
 
     console.log("Upgrading...");
@@ -11,4 +13,7 @@ async function main() {
     console.log("Upgraded successfully");
 }
 
-main();
+main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+});

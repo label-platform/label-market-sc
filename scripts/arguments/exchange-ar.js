@@ -1,1 +1,1 @@
-module.exports = ["ipfs://", "0x2873D1605a54b4DD1e5Cb63d4DA75B27598B4393"];
+module.exports = [97, ["0x6215519f4296cADfaF3DD7f5177C59e892395c37"], "0x"];
