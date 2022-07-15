@@ -51,6 +51,13 @@ module.exports = {
             //     blockNumber: 19975376,
             // },
         },
+        ganache: {
+            chainId: 1337, // config standard
+            url: 'http://127.0.0.1:7545',
+            network_id: "*",
+            // gasPrice: 2000000000000,
+            accounts: [process.env.PRIVATE_KEY]
+          },
 
         local: {
             url: "http://127.0.0.1:8545/",
