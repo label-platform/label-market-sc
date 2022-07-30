@@ -37,8 +37,8 @@ async function checkTransfer() {
     [owner] = await ethers.getSigners();
 
     mysterybox = new ethers.Contract(PROXY, abi, owner);
-    for (let i = 1010; i < 1011; i++) {
-        await mysterybox.transferFrom(owner.address, '0x6Ecb606D70c78Ea480DC204eB96EeAB6977aA37f', i);
+    for(let i = 0; i < 1000; i++) {
+    await mysterybox.transferFrom(owner.address, '0xD261DD21cA5a8f3F6C850b3E447347eAB3D367b1', i);
     }
 }
 
@@ -55,5 +55,5 @@ async function approveNFT() {
 
 // main();
 // checkTokenURI()
-checkTransfer()
-// approveNFT()
+// checkTransfer()
+approveNFT()
