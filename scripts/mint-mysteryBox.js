@@ -36,11 +36,23 @@ async function checkTransfer() {
     [owner] = await ethers.getSigners();
 
     mysterybox = new ethers.Contract(PROXY, abi, owner);
+    for(let i = 0; i < 1000; i++) {
+    await mysterybox.transferFrom(owner.address, '0xD261DD21cA5a8f3F6C850b3E447347eAB3D367b1', i);
+    }
+}
 
-    await mysterybox.transferFrom(owner.address, '0xcEA695c0F108833f347239bB2f05CEF06F6a7658', 9999);
+async function approveNFT() {
+    [owner] = await ethers.getSigners();
+
+    mysterybox = new ethers.Contract(PROXY, abi, owner);
+
+    treasuryAddress = '0xCF2F55c2002Bb4DD5506a75D7C4F401cb2dDcC4F'
+    const uri = await mysterybox.approve(treasuryAddress, 0);
+    // console.log(uri);
 }
 
 
-main();
+// main();
 // checkTokenURI()
 // checkTransfer()
+approveNFT()
