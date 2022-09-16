@@ -65,24 +65,14 @@ async function main() {
 
 }
 
-async function checkTokenURI() {
+async function makeSignWithString() {
     [owner] = await ethers.getSigners();
+    // make sign with data
+    const signedMessage = await owner.signMessage("LABEL_TRACKS");
 
-    mysterybox = new ethers.Contract(PROXY, abi, owner);
-
-    const uri = await mysterybox.tokenURI(100);
-    console.log(uri);
-}
-
-async function checkTransfer() {
-    [owner] = await ethers.getSigners();
-
-    mysterybox = new ethers.Contract(PROXY, abi, owner);
-
-    await mysterybox.transferFrom(owner.address, '0xcEA695c0F108833f347239bB2f05CEF06F6a7658', 9999);
+    console.log(signedMessage);
 }
 
 
-main();
-// checkTokenURI()
-// checkTransfer()
+// main();
+makeSignWithString()
