@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract LabelPFP is
+contract LabelPinballhead is
     Initializable,
     ERC721Upgradeable,
     ERC721EnumerableUpgradeable,
@@ -37,7 +37,7 @@ contract LabelPFP is
         uint256[] memory _royalties,
         uint256 _totalRoyalty
     ) public initializer {
-        __ERC721_init("PINBALL HEAD", "LABEL");
+        __ERC721_init("PINBALLHEAD", "PH");
         __ERC721Enumerable_init();
         __Pausable_init();
         __Ownable_init();

@@ -32,18 +32,18 @@ contract LabelHeadphone is
 
     function initialize(
         string memory _nftBaseURI,
-        uint256 _supplyCap,
+        // uint256 _supplyCap,
         address[] memory _creators,
         uint256[] memory _royalties,
         uint256 _totalRoyalty
     ) public initializer {
-        __ERC721_init("Label Headphone", "LABEL");
+        __ERC721_init("TRACKS Headphone", "TH");
         __ERC721Enumerable_init();
         __Pausable_init();
         __Ownable_init();
         __UUPSUpgradeable_init();
         nftBaseURI = _nftBaseURI;
-        supplyCap = _supplyCap;
+        // supplyCap = _supplyCap;
         _setCreditInfo(_creators, _royalties, _totalRoyalty);
     }
 
@@ -128,7 +128,7 @@ contract LabelHeadphone is
     }
 
     function mint(address to, uint256 quantity) public onlyOwner {
-        require(currentId + quantity <= supplyCap, "supply cap exceeded");
+        // require(currentId + quantity <= supplyCap, "supply cap exceeded");
         for (uint256 i = 0; i < quantity; i++) {
             _safeMint(to, currentId);
             currentId++;

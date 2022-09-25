@@ -204,7 +204,7 @@ contract LabelArtWork721 is
     function isApprovedForAll(address owner, address operator)
         public
         view
-        override
+        override(IERC721Upgradeable, ERC721Upgradeable)
         returns (bool)
     {
         ProxyRegistry proxyRegistry = ProxyRegistry(proxyRegistryAddress);
