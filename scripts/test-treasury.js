@@ -26,45 +26,45 @@ async function main() {
     //     // depositToken의 두번째 인자와 숫자가 같아야 함. 틀릴경우 revert
     //     value: ethers.utils.parseEther('1'),
     // })
-    // .then(async (tx) => {
-    //     console.log(tx.hash);
-    //     await tx.wait();
-    //     console.log(tx);
-    //     console.log("Transaction mined!");
-    // }
-    // ).catch((error) => {
-    //     console.error(error);
-    //     process.exitCode = 1;
-    // }
-    // );
+    //     .then(async (tx) => {
+    //         console.log(tx.hash);
+    //         await tx.wait();
+    //         console.log(tx);
+    //         console.log("Transaction mined!");
+    //     }
+    //     ).catch((error) => {
+    //         console.error(error);
+    //         process.exitCode = 1;
+    //     }
+    //     );
 
     // // Deposit Token(LBL/BLB ...)
-    // await treasuryContract.depositToken(LABEL_TOKEN, ethers.utils.parseEther('1000'), 1)
-    // .then(async (tx) => {
-    //     console.log(tx.hash);
-    //     await tx.wait();
-    //     console.log(tx);
-    //     console.log("Transaction mined!");
-    // }
-    // ).catch((error) => {
-    //     console.error(error);
-    //     process.exitCode = 1;
-    // }
-    // );
+    await treasuryContract.depositToken(BLB_TOKEN, ethers.utils.parseEther('1000'), 1)
+        .then(async (tx) => {
+            console.log(tx.hash);
+            await tx.wait();
+            console.log(tx);
+            console.log("Transaction mined!");
+        }
+        ).catch((error) => {
+            console.error(error);
+            process.exitCode = 1;
+        }
+        );
 
     // Deposit NFT(Mystery Box / Headphone ...)
-    treasuryContract.depositNft(MYSTERYBOX, 0, 1)
-    .then(async (tx) => {
-        console.log(tx.hash);
-        await tx.wait();
-        console.log(tx);
-        console.log("Transaction mined!");
-    }
-    ).catch((error) => {
-        console.error(error);
-        process.exitCode = 1;
-    }
-    );
+    // treasuryContract.depositNft(PINBALLHEAD, 0, 1)
+    //     .then(async (tx) => {
+    //         console.log(tx.hash);
+    //         await tx.wait();
+    //         console.log(tx);
+    //         console.log("Transaction mined!");
+    //     }
+    //     ).catch((error) => {
+    //         console.error(error);
+    //         process.exitCode = 1;
+    //     }
+    //     );
 
 }
 
@@ -77,5 +77,5 @@ async function makeSignWithString() {
 }
 
 
-// main();
-makeSignWithString()
+main();
+// makeSignWithString()
