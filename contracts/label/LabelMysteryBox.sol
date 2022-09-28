@@ -29,6 +29,10 @@ contract LabelMysteryBox is
     string public nftBaseURI;
 
     mapping(uint256 => string) private _nftUpgradedURI;
+    mapping(address => mapping(string => uint256)) private _totalNFTsUserPurchasedPreSale;
+    uint256 public constant MAXIMUM_PRESALE_LIMIT = 60;
+
+    event PreSaleOrderMatched(uint256[] tokenIds, string preSaleId);
 
     function initialize(
         string memory _nftBaseURI,
@@ -57,7 +61,7 @@ contract LabelMysteryBox is
         )
     {
         require(_exists(tokenId), "nft doesn't exist");
-        CreatorsInfo memory credit = _tokenCredit;
+        CreatorsInfo memory credit = _tokenCredit; 
 
         return (credit.creators, credit.royalties, credit.totalRoyalty);
     }
@@ -125,6 +129,15 @@ contract LabelMysteryBox is
             _safeMint(to, currentId);
             currentId++;
         }
+    }
+
+    function batchTransfer(address from, address to, uint256[] calldata tokenIds, string calldata preSaleId) public {
+        require(_totalNFTsUserPurchasedPreSale[to][preSaleId] + tokenIds.length <= MAXIMUM_PRESALE_LIMIT, "NFTs purchased excceed limit!");
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            safeTransferFrom(from, to, tokenIds[i]);
+        }
+        _totalNFTsUserPurchasedPreSale[to][preSaleId] += tokenIds.length;
+        emit PreSaleOrderMatched(tokenIds, preSaleId);
     }
 
     function setNftBaseURI(string memory _nftBaseURI) external onlyOwner {

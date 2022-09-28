@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract LabelHeadphone is
+contract LabelPinballhead is
     Initializable,
     ERC721Upgradeable,
     ERC721EnumerableUpgradeable,
@@ -36,18 +36,18 @@ contract LabelHeadphone is
 
     function initialize(
         string memory _nftBaseURI,
-        // uint256 _supplyCap,
+        uint256 _supplyCap,
         address[] memory _creators,
         uint256[] memory _royalties,
         uint256 _totalRoyalty
     ) public initializer {
-        __ERC721_init("TRACKS Headphone", "TH");
+        __ERC721_init("PINBALLHEAD", "PH");
         __ERC721Enumerable_init();
         __Pausable_init();
         __Ownable_init();
         __UUPSUpgradeable_init();
         nftBaseURI = _nftBaseURI;
-        // supplyCap = _supplyCap;
+        supplyCap = _supplyCap;
         _setCreditInfo(_creators, _royalties, _totalRoyalty);
     }
 
@@ -89,14 +89,6 @@ contract LabelHeadphone is
         _setCreditInfo(_creators, _royalties, _totalRoyalty);
     }
 
-    function _baseURI() internal view override returns (string memory) {
-        return nftBaseURI;
-    }
-
-    function setNftBaseURI(string memory _nftBaseURI) external onlyOwner {
-        nftBaseURI = _nftBaseURI;
-    }
-
     function upgradeNFT(uint256 tokenId, string memory _nftURI)
         external
         onlyOwner
@@ -119,6 +111,10 @@ contract LabelHeadphone is
         return normalURI;
     }
 
+    function _baseURI() internal view override returns (string memory) {
+        return nftBaseURI;
+    }
+
     function pause() public onlyOwner {
         _pause();
     }
@@ -127,12 +123,8 @@ contract LabelHeadphone is
         _unpause();
     }
 
-    function setSupplyCap(uint256 _supplyCap) public onlyOwner {
-        supplyCap = _supplyCap;
-    }
-
     function mint(address to, uint256 quantity) public onlyOwner {
-        // require(currentId + quantity <= supplyCap, "supply cap exceeded");
+        require(currentId + quantity <= supplyCap, "supply cap exceeded");
         for (uint256 i = 0; i < quantity; i++) {
             _safeMint(to, currentId);
             currentId++;
@@ -146,6 +138,10 @@ contract LabelHeadphone is
         }
         _totalNFTsUserPurchasedPreSale[to][preSaleId] += tokenIds.length;
         emit PreSaleOrderMatched(tokenIds, preSaleId);
+    }
+
+    function setNftBaseURI(string memory _nftBaseURI) external onlyOwner {
+        nftBaseURI = _nftBaseURI;
     }
 
     function _beforeTokenTransfer(

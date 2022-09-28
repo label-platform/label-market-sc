@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract LabelPFP is
+contract LabelHeadphoneBox is
     Initializable,
     ERC721Upgradeable,
     ERC721EnumerableUpgradeable,
@@ -29,21 +29,25 @@ contract LabelPFP is
     string public nftBaseURI;
 
     mapping(uint256 => string) private _nftUpgradedURI;
+    mapping(address => mapping(string => uint256)) private _totalNFTsUserPurchasedPreSale;
+    uint256 public constant MAXIMUM_PRESALE_LIMIT = 60;
+
+    event PreSaleOrderMatched(uint256[] tokenIds, string preSaleId);
 
     function initialize(
         string memory _nftBaseURI,
-        uint256 _supplyCap,
+        // uint256 _supplyCap,
         address[] memory _creators,
         uint256[] memory _royalties,
         uint256 _totalRoyalty
     ) public initializer {
-        __ERC721_init("PINBALL HEAD", "LABEL");
+        __ERC721_init("HEADPHONE BOX", "TMB");
         __ERC721Enumerable_init();
         __Pausable_init();
         __Ownable_init();
         __UUPSUpgradeable_init();
         nftBaseURI = _nftBaseURI;
-        supplyCap = _supplyCap;
+        // supplyCap = _supplyCap;
         _setCreditInfo(_creators, _royalties, _totalRoyalty);
     }
 
@@ -120,11 +124,20 @@ contract LabelPFP is
     }
 
     function mint(address to, uint256 quantity) public onlyOwner {
-        require(currentId + quantity <= supplyCap, "supply cap exceeded");
+        // require(currentId + quantity <= supplyCap, "supply cap exceeded");
         for (uint256 i = 0; i < quantity; i++) {
             _safeMint(to, currentId);
             currentId++;
         }
+    }
+
+    function batchTransfer(address from, address to, uint256[] calldata tokenIds, string calldata preSaleId) public {
+        require(_totalNFTsUserPurchasedPreSale[to][preSaleId] + tokenIds.length <= MAXIMUM_PRESALE_LIMIT, "NFTs purchased excceed limit!");
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            safeTransferFrom(from, to, tokenIds[i]);
+        }
+        _totalNFTsUserPurchasedPreSale[to][preSaleId] += tokenIds.length;
+        emit PreSaleOrderMatched(tokenIds, preSaleId);
     }
 
     function setNftBaseURI(string memory _nftBaseURI) external onlyOwner {

@@ -690,6 +690,115 @@ contract LabelStaticMarket is StaticMarket {
         return 1;
     }
 
+    function MultiERC721ForNative(
+        bytes memory extra,
+        address[7] memory addresses,
+        AuthenticatedProxy.HowToCall[2] memory howToCalls,
+        uint256[6] memory uints,
+        bytes memory data,
+        bytes memory counterdata
+    ) public pure returns (uint256) {
+        // require(uints[0] == 0, "ERC721ForERC20: Zero value required");
+        require(
+            howToCalls[0] == AuthenticatedProxy.HowToCall.Call,
+            "ERC721ForERC20: call must be a direct call"
+        );
+
+        (
+            address[2] memory tokenGiveGet,
+            address paymentManager,
+            uint256[] memory tokenIds,
+            uint256 price,
+            string memory orderId,
+            string memory preSaleId
+        ) = abi.decode(extra, (address[2], address, uint256[], uint256, string, string));
+
+        require(
+            price > 0,
+            "ERC721ForERC20: ERC721 price must be larger than zero"
+        );
+        require(
+            addresses[2] == tokenGiveGet[0],
+            "ERC721ForERC20: call target must equal address of token to give"
+        );
+        require(
+            addresses[5] == paymentManager,
+            "ERC721ForERC20: countercall target must equal address of paymentManager"
+        );
+
+        checkMultiERC721Side(data, addresses[1], addresses[4], tokenIds, preSaleId);
+
+        checkPaymentManager(
+            counterdata,
+            addresses[4],
+            addresses[1],
+            price,
+            tokenGiveGet[1],
+            tokenGiveGet[0],
+            tokenIds[0],
+            orderId
+        );
+
+        return 1;
+    }
+
+    function NativeForMultiERC721(
+        bytes memory extra,
+        address[7] memory addresses,
+        AuthenticatedProxy.HowToCall[2] memory howToCalls,
+        uint256[6] memory uints,
+        bytes memory data,
+        bytes memory counterdata
+    ) public pure returns (uint256) {
+        require(uints[0] == 0, "ERC20ForERC721: Zero value required");
+        require(
+            howToCalls[0] == AuthenticatedProxy.HowToCall.Call,
+            "ERC20ForERC721: call must be a direct call"
+        );
+
+        (
+            address[2] memory tokenGiveGet,
+            address paymentManager,
+            uint256[] memory tokenIds,
+            uint256 price,
+            string memory orderId,
+            string memory preSaleId
+        ) = abi.decode(extra, (address[2], address, uint256[], uint256, string, string));
+
+        require(
+            price > 0,
+            "ERC20ForERC721: ERC721 price must be larger than zero"
+        );
+        require(
+            addresses[2] == paymentManager,
+            "ERC20ForERC721: call target must equal address of paymentManager"
+        );
+        require(
+            addresses[5] == tokenGiveGet[1],
+            "ERC20ForERC721: countercall target must equal address of token to get"
+        );
+
+        checkMultiERC721Side(
+            counterdata,
+            addresses[4],
+            addresses[1],
+            tokenIds,
+            preSaleId
+        );
+        checkPaymentManager(
+            data,
+            addresses[1],
+            addresses[4],
+            price,
+            tokenGiveGet[0],
+            tokenGiveGet[1],
+            tokenIds[0],
+            orderId
+        );
+
+        return 1;
+    }
+
     function checkPaymentManager(
         bytes memory data,
         address from,
