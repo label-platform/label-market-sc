@@ -55,5 +55,6 @@ async function approveNFT() {
 
 // main();
 // checkTokenURI()
-// checkTransfer()
-approveNFT()
+checkTransfer()
+// approveNFT()
+
