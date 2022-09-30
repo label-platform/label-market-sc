@@ -29,7 +29,7 @@ contract LabelMysteryBox is
     string public nftBaseURI;
 
     mapping(uint256 => string) private _nftUpgradedURI;
-    mapping(address => mapping(string => uint256)) private _totalNFTsUserPurchasedPreSale;
+    mapping(address => mapping(string => uint256)) public totalNFTsUserPurchasedPreSale;
     uint256 public MAXIMUM_PRESALE_LIMIT;
 
     event PreSaleOrderMatched(uint256[] tokenIds, string preSaleId);
@@ -104,7 +104,7 @@ contract LabelMysteryBox is
 
     function resetTotalNFTsUserPurchasedPreSaleData (address _user, string calldata _preSaleId) external onlyOwner {
         require(_user != address(0), "Set to zero address");
-        _totalNFTsUserPurchasedPreSale[_user][_preSaleId] = 0;
+        totalNFTsUserPurchasedPreSale[_user][_preSaleId] = 0;
     }
 
     function tokenURI(uint256 tokenId)
@@ -142,11 +142,11 @@ contract LabelMysteryBox is
     }
 
     function batchTransfer(address from, address to, uint256[] calldata tokenIds, string calldata preSaleId) public {
-        require(_totalNFTsUserPurchasedPreSale[to][preSaleId] + tokenIds.length <= MAXIMUM_PRESALE_LIMIT, "NFTs purchased excceed limit!");
+        require(totalNFTsUserPurchasedPreSale[to][preSaleId] + tokenIds.length <= MAXIMUM_PRESALE_LIMIT, "NFTs purchased excceed limit!");
         for (uint256 i = 0; i < tokenIds.length; i++) {
             safeTransferFrom(from, to, tokenIds[i]);
         }
-        _totalNFTsUserPurchasedPreSale[to][preSaleId] += tokenIds.length;
+        totalNFTsUserPurchasedPreSale[to][preSaleId] += tokenIds.length;
         emit PreSaleOrderMatched(tokenIds, preSaleId);
     }
 
