@@ -30,7 +30,7 @@ contract LabelMysteryBox is
 
     mapping(uint256 => string) private _nftUpgradedURI;
     mapping(address => mapping(string => uint256)) private _totalNFTsUserPurchasedPreSale;
-    uint256 public constant MAXIMUM_PRESALE_LIMIT = 60;
+    uint256 public MAXIMUM_PRESALE_LIMIT;
 
     event PreSaleOrderMatched(uint256[] tokenIds, string preSaleId);
 
@@ -95,6 +95,16 @@ contract LabelMysteryBox is
     {
         require(_exists(tokenId), "nft doesn't exist");
         _nftUpgradedURI[tokenId] = _nftURI;
+    }
+
+    function setMaximumPreSaleLimit(uint256 _maximumPreSaleLimit) external onlyOwner {
+        require(_maximumPreSaleLimit != 0, "Must be > 0");
+        MAXIMUM_PRESALE_LIMIT = _maximumPreSaleLimit;
+    }
+
+    function resetTotalNFTsUserPurchasedPreSaleData (address _user, string calldata _preSaleId) external onlyOwner {
+        require(_user != address(0), "Set to zero address");
+        _totalNFTsUserPurchasedPreSale[_user][_preSaleId] = 0;
     }
 
     function tokenURI(uint256 tokenId)
